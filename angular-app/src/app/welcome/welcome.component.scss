@@ -1,0 +1,57 @@
+.welcome-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 90vh;
+  background: linear-gradient(135deg, #f6f6f6, #e0e0e0);
+  padding: 2rem;
+  text-align: center;
+}
+
+.welcome-card {
+  background: #fff;
+  border: 2px dashed #ff4d4d;
+  border-radius: 2xl;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  padding: 2rem 3rem;
+  max-width: 600px;
+  animation: popIn 0.6s ease-out;
+
+  h1 {
+    font-size: 2.2rem;
+    color: #d10000;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-size: 1.2rem;
+    color: #444;
+    margin-bottom: 2rem;
+  }
+
+  button {
+    background: #d10000;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s ease;
+
+    &:hover {
+      background: #9c0000;
+    }
+  }
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
