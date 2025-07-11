@@ -1,0 +1,11 @@
+.mgton-logo {
+  width: 200px;
+  height: auto;
+  display: block;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05) rotate(-1deg);
+    cursor: pointer;
+  }
+}

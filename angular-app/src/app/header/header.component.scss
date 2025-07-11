@@ -101,4 +101,27 @@
     background-color: #512da8;  // even darker on hover
     opacity: 1;
   }
+.dropdown {
+  position: relative;
+  display: inline-block;
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%; // <-- directly below the parent
+    left: 0;
+    background-color: #5e35b1;
+    min-width: 150px;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    padding: 0;
+    margin: 0;
+  }
+
+  &:hover .dropdown-content {
+    display: flex; // or block depending on layout
+    flex-direction: column;
+  }
+}
 }

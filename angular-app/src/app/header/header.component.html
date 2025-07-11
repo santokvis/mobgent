@@ -1,5 +1,7 @@
 <header class="main-header">
-  <div class="logo">🚧 MGTON</div>
+  <div class="logo">
+    <app-logo></app-logo>
+  </div>
   <nav class="nav-menu">
     <ul>
       <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a></li>
@@ -9,6 +11,13 @@
           <li><a routerLink="/frustraties/parkeren">Parkeren</a></li>
           <li><a routerLink="/frustraties/snelheid">Snelheid</a></li>
           <li><a routerLink="/frustraties/hindernis">Hindernis</a></li>
+        </ul>
+      <li class="dropdown">
+        <a routerLink="/plaatsen" routerLinkActive="active">Plaatsen ▼</a>
+        <ul class="dropdown-content">
+          <li><a routerLink="/plaatsen/sintamandsberg">Sint-Amandsberg</a></li>
+          <li><a routerLink="/plaatsen/ledeberg">Ledeberg</a></li>
+          <li><a routerLink="/plaatsen/centrum">Gent Centrum</a></li>
         </ul>
       </li>
       <li><a routerLink="/contact" routerLinkActive="active">Contact</a></li>
