@@ -6,6 +6,9 @@
     <title>Mobiliteit Gent Trekt Op Niets - De Klachtenmuur</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Maps API Script -->
+    <!-- Note: We use the 'initMap' callback. A valid API key is required for production use, but is omitted here for the sandbox environment. -->
+    <script async src="https://maps.googleapis.com/maps/api/js?callback=initMap"></script>
     <style>
         /* Custom styles for the high-contrast, urgent theme */
         body {
@@ -48,7 +51,7 @@
             color: #ef4444; /* Red color for danger */
         }
 
-        /* Spinner style (retained but styled for theme) */
+        /* Spinner style */
         .spinner {
             border: 4px solid rgba(255, 255, 255, 0.3);
             border-top: 4px solid #fde047; /* Yellow spinner */
@@ -61,6 +64,38 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        
+        /* Map Container Styling */
+        #map {
+            height: 500px; /* Fixed height for good visibility */
+            width: 100%;
+            margin-bottom: 4rem;
+            border-radius: 0.75rem; /* rounded-xl equivalent */
+            border: 2px solid #fde047; /* Yellow border */
+        }
+        
+        /* Custom Infobox/Modal for adding a location (Google Maps InfoWindow content) */
+        .map-infobox {
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            max-width: 300px;
+        }
+        .map-infobox h3 {
+            color: #fde047;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .map-infobox textarea {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background-color: #0a0a0a;
+            color: white;
+            border: 1px solid #4b5563;
+            border-radius: 0.25rem;
         }
     </style>
 </head>
@@ -91,6 +126,15 @@
             <p class="text-lg text-gray-400 max-w-3xl mx-auto">
                 De échte frustraties die het verkeer in Gent dagelijks gevaarlijk maken, worden genegeerd. Tijd voor een muur van klachten.
             </p>
+        </section>
+
+        <!-- New: Interactive Map Section -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-yellow-400 mb-6 text-center">DE GEVAARZONES VAN GENT</h2>
+            <p class="text-gray-400 mb-6 text-center">
+                Klik op de kaart om een locatie aan te duiden waar mobiliteitsproblemen gevaarlijke situaties veroorzaken.
+            </p>
+            <div id="map"></div>
         </section>
 
         <!-- Specific Complaint Grid -->
@@ -172,9 +216,176 @@
 </div>
 
 <script>
+    // Global map variables
+    let map;
+    let infowindow;
+    
+    // Mock data storage for initial markers (simulating DB loading)
+    const dangerousLocations = [
+        { lat: 51.0560, lng: 3.7250, description: "Door foutparkeren op de hoek van de Groentenmarkt is er geen zicht voor fietsers." },
+        { lat: 51.0435, lng: 3.7380, description: "Regelmatig te hoge snelheid op de Einde Were. Zone 30 wordt genegeerd!" },
+        { lat: 51.0505, lng: 3.7000, description: "Achteruitrijdende bestelwagens op de Kortrijksepoortstraat." }
+    ];
+
     /**
-     * Simulates the submission of a complaint.
-     * Uses a custom message box instead of alert().
+     * Initializes the Google Map centered on Ghent and loads existing markers.
+     */
+    function initMap() {
+        const gentCoords = { lat: 51.0500, lng: 3.7300 }; // Center of Ghent
+
+        if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+            console.error("Google Maps API is not loaded.");
+            return;
+        }
+
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: gentCoords,
+            zoom: 13,
+            // Simple map ID, necessary for modern map rendering
+            mapId: "DEMO_MAP_ID" 
+        });
+
+        infowindow = new google.maps.InfoWindow();
+
+        // 1. Load existing records (Simulate DB retrieval)
+        loadDangerousLocationsFromDB();
+
+        // 2. Add click listener for new marker creation
+        map.addListener("click", (mapsMouseEvent) => {
+            const coords = mapsMouseEvent.latLng;
+            showAddLocationForm(coords);
+        });
+    }
+
+    /**
+     * Simulates loading markers from a database and placing them on the map.
+     */
+    function loadDangerousLocationsFromDB() {
+        dangerousLocations.forEach(location => {
+            addMarkerToMap(location.lat, location.lng, location.description, false); // Existing markers
+        });
+    }
+    
+    /**
+     * Shows the form (infowindow) to add a description for the clicked location.
+     */
+    function showAddLocationForm(coords) {
+        if (!map) return;
+        
+        const contentString = `
+            <div class="map-infobox">
+                <h3>Voeg Gevaarlijke Locatie Toe</h3>
+                <textarea id="marker-description" placeholder="Beschrijf de frustratie hier..."></textarea>
+                <p class="text-xs text-gray-400 mb-2">Locatie: ${coords.lat().toFixed(4)}, ${coords.lng().toFixed(4)}</p>
+                <button 
+                    onclick="submitNewLocation(${coords.lat()}, ${coords.lng()})" 
+                    class="warning-button w-full font-semibold py-2 px-4 rounded-md text-sm">
+                    Verzenden
+                </button>
+            </div>
+        `;
+
+        infowindow.setContent(contentString);
+        infowindow.setPosition(coords);
+        infowindow.open(map);
+    }
+
+    /**
+     * Adds a marker to the map and sets up its click listener.
+     */
+    function addMarkerToMap(lat, lng, description, isNew = false) {
+        const coords = { lat: lat, lng: lng };
+        
+        const marker = new google.maps.Marker({
+            position: coords,
+            map,
+            title: description.substring(0, 50) + "...",
+            // Custom yellow flag icon for new submissions to make them stand out
+            icon: isNew ? { 
+                path: google.maps.SymbolPath.FLAG,
+                fillColor: "#fde047", 
+                fillOpacity: 1,
+                strokeWeight: 0,
+                scale: 6,
+            } : null // Default icon for loaded (simulated DB) markers
+        });
+
+        marker.addListener("click", () => {
+             infowindow.setContent(`
+                <div class="map-infobox !bg-gray-800">
+                    <h3 class="text-base text-red-400">Gevaarzone Gemeld</h3>
+                    <p class="text-sm text-gray-300">${description}</p>
+                </div>
+            `);
+            infowindow.open(map, marker);
+        });
+        
+        if (isNew) {
+            // Simulate saving new data to DB
+            saveDangerousLocationToDB(lat, lng, description);
+        }
+    }
+
+    /**
+     * Simulates saving the new location to the backend/DB via API placeholder.
+     */
+    function saveDangerousLocationToDB(lat, lng, description) {
+        const newLocation = { lat, lng, description, timestamp: Date.now() };
+        console.log("MOCK API POST/PUT: Sending new location to backend:", newLocation);
+
+        // --- API Placeholder: In a real app, you would use fetch() here ---
+        /*
+        fetch('/api/dangerous-locations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newLocation)
+        });
+        */
+        
+        // Show success message near the map
+        const mapSection = document.querySelector('.mb-16');
+        let messageBox = document.getElementById('map-submission-message');
+        if (!messageBox) {
+            messageBox = document.createElement('div');
+            messageBox.id = 'map-submission-message';
+            messageBox.classList.add('p-3', 'rounded-lg', 'max-w-lg', 'mx-auto', 'mt-4');
+            mapSection.appendChild(messageBox);
+        }
+
+        messageBox.className = 'mt-4 p-3 bg-green-700 text-white rounded-lg max-w-lg mx-auto';
+        messageBox.textContent = "Locatie succesvol gemeld! Bedankt om de gevaarzone aan te duiden.";
+        
+        // Remove message after a few seconds
+        setTimeout(() => {
+            if (messageBox.parentNode) messageBox.remove();
+        }, 5000);
+    }
+    
+    /**
+     * Handles the form submission from the map infowindow.
+     */
+    window.submitNewLocation = function(lat, lng) {
+        const descriptionInput = document.getElementById('marker-description');
+        const description = descriptionInput ? descriptionInput.value.trim() : '';
+
+        if (description) {
+            infowindow.close();
+            addMarkerToMap(lat, lng, description, true);
+        } else {
+            // Display an error in the infowindow if description is empty
+            const contentString = `
+                <div class="map-infobox bg-red-800">
+                    <h3 class="text-red-300">Fout: Beschrijving Nodig</h3>
+                    <p class="text-sm text-gray-100">Vul a.u.b. een korte beschrijving in van de gevaarlijke situatie.</p>
+                </div>
+            `;
+            infowindow.setContent(contentString);
+            infowindow.open(map);
+        }
+    }
+
+    /**
+     * Existing function for text feedback submission (kept separate)
      */
     function simulateSubmission() {
         const input = document.getElementById('feedback-input');
@@ -188,23 +399,24 @@
             return;
         }
 
-        // Simulate sending data
-        console.log("Simulated Complaint Sent:", input.value);
+        console.log("Simulated Complaint Sent (Text Box):", input.value);
         
-        // Show success message
         messageBox.textContent = "Klacht verzonden. Jouw frustratie is gehoord!";
         messageBox.classList.remove('hidden');
         messageBox.classList.add('bg-green-600');
         messageBox.classList.remove('bg-red-600');
         
-        // Clear input after submission
         input.value = ""; 
 
-        // Hide message after a few seconds
         setTimeout(() => {
             messageBox.classList.add('hidden');
         }, 5000);
     }
+    
+    // Expose functions globally for the Google Maps API callback and HTML onclick handlers
+    window.initMap = initMap;
+    window.simulateSubmission = simulateSubmission;
+
 </script>
 
 </body>
